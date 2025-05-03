@@ -1,0 +1,247 @@
+import { createClient } from '@supabase/supabase-js';
+import { 
+  User, Order, Game, GameServer, ActivityLog, 
+  DashboardStats, Admin, TopUpData, OrderStatus 
+} from '../types';
+
+// In a real application, these would be environment variables
+const supabaseUrl = 'https://djcwtdzvvtksmwnicgwh.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqY3d0ZHp2dnRrc213bmljZ3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMTIwMDgsImV4cCI6MjA2MTU4ODAwOH0.6kPKIvbD8RC7Ek-8R7GvR7QP3Y5V97ikrw3lZji2U2A';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Auth services
+export const loginAdmin = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  
+  if (error) throw error;
+  return data;
+};
+
+export const logoutAdmin = async () => {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+};
+
+export const getCurrentAdmin = async (): Promise<Admin | null> => {
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) return null;
+
+  // Fetch admin details
+  const { data: adminData, error: adminError } = await supabase
+    .from('admins')
+    .select('*')
+    .eq('id', data.user.id) // Ensure this matches the logged-in user's ID
+    .single();
+
+  if (adminError) throw adminError;
+  return adminData as Admin;
+};
+
+// User services
+export const getUsers = async () => {
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, customer_id, name, email, phone, balance, totalbalance, created_at, updated_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  // Map snake_case to camelCase
+  return data.map((user) => ({
+    id: user.id,
+    customerId: user.customer_id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    balance: user.balance,
+    totalBalance: user.totalbalance,
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+  }));
+};
+
+export const getUserById = async (id: string): Promise<User> => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', id)
+    .single();
+    
+  if (error) throw error;
+  return data as User;
+};
+
+export const searchUsers = async (query: string): Promise<User[]> => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .or(`name.ilike.%${query}%,email.ilike.%${query}%,customerId.ilike.%${query}%`)
+    .limit(10);
+    
+  if (error) throw error;
+  return data as User[];
+};
+
+// Order services
+export const getOrders = async (): Promise<Order[]> => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      user:userId(id, name, email, customerId),
+      game:gameId(id, name),
+      server:serverId(id, name, region)
+    `)
+    .order('createdAt', { ascending: false });
+    
+  if (error) throw error;
+  return data as Order[];
+};
+
+export const getOrderById = async (id: string): Promise<Order> => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      user:userId(id, name, email, customerId),
+      game:gameId(id, name),
+      server:serverId(id, name, region)
+    `)
+    .eq('id', id)
+    .single();
+    
+  if (error) throw error;
+  return data as Order;
+};
+
+export const updateOrderStatus = async (id: string, status: OrderStatus): Promise<Order> => {
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ status, updatedAt: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  
+  // Log the activity
+  await logActivity({
+    adminId: (await getCurrentAdmin())?.id || '',
+    adminName: (await getCurrentAdmin())?.name || '',
+    activityType: status === 'refunded' ? 'refund' : 'order-status-change',
+    description: `Updated order ${id} status to ${status}`,
+    metadata: { orderId: id, newStatus: status }
+  });
+  
+  return data as Order;
+};
+
+// Game services
+export const getGames = async (): Promise<Game[]> => {
+  const { data, error } = await supabase
+    .from('games')
+    .select('*')
+    .order('name');
+    
+  if (error) throw error;
+  return data as Game[];
+};
+
+export const getGameServers = async (): Promise<GameServer[]> => {
+  const { data, error } = await supabase
+    .from('game_servers')
+    .select('*')
+    .order('name');
+    
+  if (error) throw error;
+  return data as GameServer[];
+};
+
+// Activity log services
+export const getActivityLogs = async (): Promise<ActivityLog[]> => {
+  const { data, error } = await supabase
+    .from('activity_logs')
+    .select('*')
+    .order('createdAt', { ascending: false });
+    
+  if (error) throw error;
+  return data as ActivityLog[];
+};
+
+export const logActivity = async (activity: Omit<ActivityLog, 'id' | 'createdAt'>): Promise<void> => {
+  const { error } = await supabase
+    .from('activity_logs')
+    .insert({
+      ...activity,
+      createdAt: new Date().toISOString()
+    });
+    
+  if (error) throw error;
+};
+
+// Top-up service
+export const topUpUserBalance = async ({ userId, amount, remark }: TopUpData): Promise<void> => {
+  const admin = await getCurrentAdmin();
+  if (!admin) throw new Error('Admin not authenticated');
+  
+  if (admin.balance < amount) {
+    throw new Error('Insufficient admin balance');
+  }
+  
+  // Start a transaction
+  const { error: txnError } = await supabase.rpc('top_up_user_balance', {
+    p_admin_id: admin.id,
+    p_user_id: userId,
+    p_amount: amount
+  });
+  
+  if (txnError) throw txnError;
+  
+  // Log the activity
+  await logActivity({
+    adminId: admin.id,
+    adminName: admin.name,
+    activityType: 'top-up',
+    description: `Topped up user ${userId} balance by ${amount}`,
+    metadata: { userId, amount, remark }
+  });
+};
+
+// Dashboard stats
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  // In a real application, this would be a single RPC call to the database
+  // For demo purposes, we'll simulate it with multiple calls
+  
+  const [users, orders, activityLogs] = await Promise.all([
+    getUsers(),
+    getOrders(),
+    getActivityLogs()
+  ]);
+  
+  const totalSales = orders.reduce((sum, order) => 
+    order.status === 'approved' ? sum + order.amount : sum, 0);
+    
+  const failedOrders = orders.filter(order => order.status === 'failed').length;
+  const pendingOrders = orders.filter(order => order.status === 'pending').length;
+  
+  const topUpActivities = activityLogs.filter(log => log.activityType === 'top-up');
+  const totalTopUps = topUpActivities.reduce((sum, log) => 
+    sum + (log.metadata.amount || 0), 0);
+  
+  return {
+    totalUsers: users.length,
+    totalOrders: orders.length,
+    totalSales,
+    failedOrders,
+    pendingOrders,
+    totalTopUps,
+    recentActivity: activityLogs.slice(0, 10)
+  };
+};
