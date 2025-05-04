@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { GameProvider } from './context/GameContext';
 
 // Layouts
 import AdminLayout from './components/layout/AdminLayout';
@@ -67,8 +68,10 @@ const AppRoutes: React.FC = () => {
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
-      <Toaster position="top-right" />
+      <GameProvider>
+        <AppRoutes />
+        <Toaster position="top-right" />
+      </GameProvider>
     </AuthProvider>
   );
 }
