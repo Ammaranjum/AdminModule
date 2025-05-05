@@ -296,6 +296,23 @@ export const topUpUserBalanceBackend = async (adminId: string, userId: string, a
     throw new Error('Error updating user balance');
   }
 
+  // Insert top-up record into top_ups table
+  const { error: insertError } = await supabase
+    .from('top_ups')
+    .insert({
+      admin_id: adminId,
+      user_id: userId,
+      amount: amount,
+      adminOldRecharge: adminData.Recharge,
+      adminNewRecharge: adminData.Recharge - amount,
+      remarks: '' // Add any remarks if needed
+    });
+
+  if (insertError) {
+    console.error('Error logging top-up:', insertError.message, insertError.details);
+    throw new Error('Failed to log top-up action');
+  }
+
   console.log(`Successfully topped up user ${userId}'s balance by $${amount}`);
 };
 
