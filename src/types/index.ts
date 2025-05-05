@@ -15,7 +15,8 @@ export interface Admin {
   id: string;
   email: string;
   name: string;
-  balance: number;
+  Recharge: number;
+  totalBalance: number;
 }
 
 export type OrderStatus = 'pending' | 'approved' | 'failed' | 'refunded';
@@ -78,4 +79,9 @@ export interface TopUpData {
   userId: string;
   amount: number;
   remark: string;
+  adminName: string;
+  adminOldRecharge: number;
+  adminNewRecharge: number;
+  createdAt: string;
+  id: string;
 }

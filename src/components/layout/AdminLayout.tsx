@@ -1,12 +1,20 @@
 import React from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, PackageSearch, Server as ServerStack, Activity, LogOut, Menu, X, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Users, PackageSearch, Server as ServerStack, Activity, LogOut, Menu, X, DollarSign, ClipboardList } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const AdminLayout: React.FC = () => {
   const { admin, logout } = useAuth();
   const [menuOpen, setMenuOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (admin) {
+      console.log('Admin object:', admin);
+      console.log('Admin Recharge:', admin.Recharge);
+      console.log('Admin totalBalance:', admin.totalBalance);
+    }
+  }, [admin]);
 
   const handleLogout = async () => {
     try {
@@ -25,6 +33,7 @@ const AdminLayout: React.FC = () => {
     { to: '/admin/users', icon: <Users size={20} />, label: 'Users' },
     { to: '/admin/orders', icon: <PackageSearch size={20} />, label: 'Orders' },
     { to: '/admin/topup', icon: <DollarSign size={20} />, label: 'Top Up' },
+    { to: '/admin/topups', icon: <ClipboardList size={20} />, label: 'Top-Up Logs' },
     { to: '/admin/games', icon: <ServerStack size={20} />, label: 'Games & Servers' },
     { to: '/admin/activity', icon: <Activity size={20} />, label: 'Activity Logs' },
   ];
@@ -75,12 +84,20 @@ const AdminLayout: React.FC = () => {
         </nav>
 
         <div className="p-4 border-t border-gray-800">
-          {admin && (
+          {admin && admin.Recharge !== undefined && (
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-gray-400">Admin Balance:</span>
-              <span className="font-medium">${admin.balance.toFixed(2)}</span>
+              <span className="text-sm text-gray-400">Recharge:</span>
+              <span className="font-medium">${admin.Recharge?.toFixed(2) || '0.00'}</span>
             </div>
           )}
+
+          {admin && admin.totalBalance !== undefined && (
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-gray-400">Total Balance:</span>
+              <span className="font-medium">${admin.totalBalance?.toFixed(2) || '0.00'}</span>
+            </div>
+          )}
+
           <button
             onClick={handleLogout}
             className="flex w-full items-center px-4 py-3 text-gray-400 rounded-md hover:bg-gray-800 hover:text-white transition duration-150 ease-in-out"

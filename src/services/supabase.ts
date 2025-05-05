@@ -80,13 +80,23 @@ export const getUserById = async (id: string): Promise<User> => {
 
 export const searchUsers = async (query: string): Promise<User[]> => {
   const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .or(`name.ilike.%${query}%,email.ilike.%${query}%,customerId.ilike.%${query}%`)
+    .from("users")
+    .select("id, customer_id, name, email, phone, balance, totalbalance, created_at, updated_at")
+    .or(`name.ilike.%${query}%,email.ilike.%${query}%,customer_id.ilike.%${query}%`)
     .limit(10);
-    
+
   if (error) throw error;
-  return data as User[];
+  return data.map((user) => ({
+    id: user.id,
+    customerId: user.customer_id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    balance: user.balance,
+    totalBalance: user.totalbalance,
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+  }));
 };
 
 // Order services
@@ -187,11 +197,20 @@ export const logActivity = async (activity: Omit<ActivityLog, 'id' | 'createdAt'
 };
 
 // Top-up service
-export const topUpUserBalance = async ({ userId, amount, remark }: TopUpData): Promise<void> => {
+export const topUpUserBalance = async ({
+  id,
+  userId,
+  amount,
+  remark,
+  adminName,
+  adminOldRecharge,
+  adminNewRecharge,
+  createdAt,
+}: TopUpData): Promise<void> => {
   const admin = await getCurrentAdmin();
   if (!admin) throw new Error('Admin not authenticated');
   
-  if (admin.balance < amount) {
+  if (admin.Recharge < amount) {
     throw new Error('Insufficient admin balance');
   }
   
@@ -203,7 +222,23 @@ export const topUpUserBalance = async ({ userId, amount, remark }: TopUpData): P
   });
   
   if (txnError) throw txnError;
-  
+
+  // Insert top-up record into top_ups table
+  const { error: insertError } = await supabase
+    .from('top_ups')
+    .insert({
+      id: id,
+      created_at: createdAt,
+      admin_id: admin.id,
+      admin_name: adminName,
+      admin_old_recharge: adminOldRecharge,
+      admin_new_recharge: adminNewRecharge,
+      user_id: userId,
+      amount: amount,
+      remarks: remark,
+    });
+  if (insertError) throw insertError;
+
   // Log the activity
   await logActivity({
     adminId: admin.id,
@@ -244,4 +279,19 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     totalTopUps,
     recentActivity: activityLogs.slice(0, 10)
   };
+};
+
+export const getTopUps = async (): Promise<TopUpData[]> => {
+  const { data, error } = await supabase.from('top_ups').select('*');
+  if (error) throw error;
+  return data.map((row) => ({
+    id: row.id,
+    createdAt: row.created_at,
+    adminName: row.admin_name,
+    adminOldRecharge: row.admin_old_recharge,
+    adminNewRecharge: row.admin_new_recharge,
+    userId: row.user_id,
+    amount: row.amount,
+    remark: row.remarks,
+  }));
 };

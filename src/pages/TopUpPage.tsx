@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { searchUsers, topUpUserBalance } from "../services/supabase";
+import { getUsers, searchUsers, topUpUserBalance } from "../services/supabase";
 import { User, TopUpData } from "../types";
 import Card from "../components/common/Card";
 import Button from "../components/common/Button";
@@ -10,20 +10,45 @@ import { toast } from "react-hot-toast";
 const TopUpPage: React.FC = () => {
   const { admin } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [amount, setAmount] = useState<number | "">("");
   const [remark, setRemark] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      try {
+        setIsLoading(true);
+        const users = await getUsers();
+        console.log('Fetched users:', users);
+        setAllUsers(users);
+        setFilteredUsers(users);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        if (error instanceof Error) {
+          toast.error('Failed to load users: ' + error.message);
+        } else {
+          toast.error('Failed to load users: Unknown error');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllUsers();
+  }, []);
 
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setFilteredUsers(allUsers);
+      return;
+    }
     try {
       setIsLoading(true);
       const users = await searchUsers(searchQuery);
-      setSearchResults(users);
+      setFilteredUsers(users);
     } catch (error) {
       console.error("Error searching users:", error);
       toast.error("Failed to search users");
@@ -34,7 +59,6 @@ const TopUpPage: React.FC = () => {
 
   const handleSelectUser = (user: User) => {
     setSelectedUser(user);
-    setSearchResults([]);
     setSearchQuery("");
   };
 
@@ -49,7 +73,7 @@ const TopUpPage: React.FC = () => {
       return;
     }
 
-    if (admin.balance < amount) {
+    if (admin.Recharge < amount) {
       toast.error("Insufficient admin balance");
       return;
     }
@@ -58,6 +82,11 @@ const TopUpPage: React.FC = () => {
       userId: selectedUser.id,
       amount: Number(amount),
       remark: remark || "Manual top-up by admin",
+      adminName: admin.name,
+      adminOldRecharge: admin.Recharge,
+      adminNewRecharge: admin.Recharge - Number(amount),
+      createdAt: new Date().toISOString(),
+      id: Math.random().toString(36).substring(2)
     };
 
     try {
@@ -86,7 +115,7 @@ const TopUpPage: React.FC = () => {
         <p className="text-sm text-gray-500">
           Your Balance:{" "}
           <span className="font-medium">
-            ${admin?.balance.toFixed(2) || "0.00"}
+            ${admin?.Recharge.toFixed(2) || "0.00"}
           </span>
         </p>
       </div>
@@ -119,36 +148,26 @@ const TopUpPage: React.FC = () => {
           </Button>
         </div>
 
-        {searchResults.length > 0 && (
-          <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">
-              Search Results
-            </h3>
-            <div className="bg-gray-50 rounded-md border border-gray-200 divide-y divide-gray-200">
-              {searchResults.map((user) => (
-                <div
-                  key={user.id}
-                  className="px-4 py-3 flex justify-between items-center hover:bg-gray-100 cursor-pointer"
-                  onClick={() => handleSelectUser(user)}
-                >
+        <div className="mt-4">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Search Results</h3>
+          <div className="bg-gray-50 rounded-md border border-gray-200 divide-y divide-gray-200">
+            {filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <div key={user.id} className="px-4 py-3 flex justify-between items-center hover:bg-gray-100 cursor-pointer" onClick={() => handleSelectUser(user)}>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {user.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {user.email} | Customer ID: {user.customerId}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                    <p className="text-xs text-gray-500">{user.email} | Customer ID: {user.customerId}</p>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-green-600">
-                      Balance: ${user.balance.toFixed(2)}
-                    </span>
+                    <span className="text-sm font-medium text-green-600">Balance: ${user.balance.toFixed(2)}</span>
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 p-4">No users found. Please check if users exist in the database or try searching again.</p>
+            )}
           </div>
-        )}
+        </div>
       </Card>
 
       {selectedUser && (
@@ -231,7 +250,7 @@ const TopUpPage: React.FC = () => {
                   !amount ||
                   amount <= 0 ||
                   !admin ||
-                  admin.balance < Number(amount)
+                  admin.Recharge < Number(amount)
                 }
               >
                 Top Up Balance
