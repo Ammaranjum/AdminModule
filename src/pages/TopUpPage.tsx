@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, searchUsers, topUpUserBalance } from "../services/supabase";
-import { User, TopUpData } from "../types";
+import { getUsers, searchUsers, topUpUserBalanceBackend } from "../services/supabase";
+import { User } from "../types";
 import Card from "../components/common/Card";
 import Button from "../components/common/Button";
 import { useAuth } from "../context/AuthContext";
@@ -8,7 +8,7 @@ import { Search, DollarSign, User as UserIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 const TopUpPage: React.FC = () => {
-  const { admin } = useAuth();
+  const { admin, refreshAdmin } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -78,23 +78,16 @@ const TopUpPage: React.FC = () => {
       return;
     }
 
-    const topUpData: TopUpData = {
-      userId: selectedUser.id,
-      amount: Number(amount),
-      remark: remark || "Manual top-up by admin",
-      adminName: admin.name,
-      adminOldRecharge: admin.Recharge,
-      adminNewRecharge: admin.Recharge - Number(amount),
-      createdAt: new Date().toISOString(),
-      id: Math.random().toString(36).substring(2)
-    };
-
     try {
       setIsProcessing(true);
-      await topUpUserBalance(topUpData);
+      await topUpUserBalanceBackend(admin.id, selectedUser.id, Number(amount));
       toast.success(
         `Successfully topped up ${selectedUser.name}'s balance by $${amount}`
       );
+      await refreshAdmin();
+      const users = await getUsers();
+      setAllUsers(users);
+      setFilteredUsers(users);
       setSelectedUser(null);
       setAmount("");
       setRemark("");

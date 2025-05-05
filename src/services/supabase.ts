@@ -8,7 +8,7 @@ import {
 const supabaseUrl = 'https://djcwtdzvvtksmwnicgwh.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqY3d0ZHp2dnRrc213bmljZ3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMTIwMDgsImV4cCI6MjA2MTU4ODAwOH0.6kPKIvbD8RC7Ek-8R7GvR7QP3Y5V97ikrw3lZji2U2A';
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Auth services
 export const loginAdmin = async (email: string, password: string) => {
@@ -247,6 +247,56 @@ export const topUpUserBalance = async ({
     description: `Topped up user ${userId} balance by ${amount}`,
     metadata: { userId, amount, remark }
   });
+};
+
+// Function to perform top-up operation
+export const topUpUserBalanceBackend = async (adminId: string, userId: string, amount: number): Promise<void> => {
+  // Fetch admin and user data
+  const { data: adminData, error: adminError } = await supabase
+    .from('admins')
+    .select('id, Recharge')
+    .eq('id', adminId)
+    .single();
+
+  if (adminError || !adminData) {
+    throw new Error('Admin not found or error fetching admin data');
+  }
+
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('id, balance')
+    .eq('id', userId)
+    .single();
+
+  if (userError || !userData) {
+    throw new Error('User not found or error fetching user data');
+  }
+
+  // Check if admin has sufficient balance
+  if (adminData.Recharge < amount) {
+    throw new Error('Insufficient admin balance');
+  }
+
+  // Update balances
+  const { error: adminUpdateError } = await supabase
+    .from('admins')
+    .update({ Recharge: adminData.Recharge - amount })
+    .eq('id', adminId);
+
+  if (adminUpdateError) {
+    throw new Error('Error updating admin balance');
+  }
+
+  const { error: userUpdateError } = await supabase
+    .from('users')
+    .update({ balance: userData.balance + amount })
+    .eq('id', userId);
+
+  if (userUpdateError) {
+    throw new Error('Error updating user balance');
+  }
+
+  console.log(`Successfully topped up user ${userId}'s balance by $${amount}`);
 };
 
 // Dashboard stats

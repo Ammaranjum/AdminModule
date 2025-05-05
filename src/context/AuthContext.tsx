@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshAdmin: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,8 +61,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const refreshAdmin = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const currentAdmin = await getCurrentAdmin();
+      setAdmin(currentAdmin);
+    } catch (error) {
+      console.error('Failed to refresh admin:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ admin, loading, login, logout }}>
+    <AuthContext.Provider value={{ admin, loading, login, logout, refreshAdmin }}>
       {children}
     </AuthContext.Provider>
   );

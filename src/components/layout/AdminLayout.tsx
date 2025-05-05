@@ -12,7 +12,7 @@ const AdminLayout: React.FC = () => {
     if (admin) {
       console.log('Admin object:', admin);
       console.log('Admin Recharge:', admin.Recharge);
-      console.log('Admin totalBalance:', admin.totalBalance);
+      console.log('Admin totalBalance:', admin.TotalBalance);
     }
   }, [admin]);
 
@@ -91,10 +91,10 @@ const AdminLayout: React.FC = () => {
             </div>
           )}
 
-          {admin && admin.totalBalance !== undefined && (
+          {admin && admin.TotalBalance !== undefined && (
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-gray-400">Total Balance:</span>
-              <span className="font-medium">${admin.totalBalance?.toFixed(2) || '0.00'}</span>
+              <span className="text-sm text-gray-400">Balance:</span>
+              <span className="font-medium">${admin.TotalBalance?.toFixed(2) || '0.00'}</span>
             </div>
           )}
 

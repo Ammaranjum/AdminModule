@@ -1,3 +1,5 @@
+import { supabase } from '../services/supabase'; // Adjust the path as necessary
+
 export interface User {
   id: string;
   customerId: string;
@@ -16,7 +18,7 @@ export interface Admin {
   email: string;
   name: string;
   Recharge: number;
-  totalBalance: number;
+  TotalBalance: number;
 }
 
 export type OrderStatus = 'pending' | 'approved' | 'failed' | 'refunded';
@@ -85,3 +87,75 @@ export interface TopUpData {
   createdAt: string;
   id: string;
 }
+
+export const getCurrentAdmin = async (): Promise<Admin | null> => {
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) return null;
+
+  // Fetch admin details
+  const { data: adminData, error: adminError } = await supabase
+    .from('admins')
+    .select('id, email, name, Recharge, TotalBalance') // Ensure these fields match your database schema
+    .eq('id', data.user.id)
+    .single();
+
+  if (adminError) throw adminError;
+  return adminData as Admin;
+};
+
+export const topUpUserBalanceBackend = async (adminId: string, userId: string, amount: number): Promise<void> => {
+  // Fetch admin and user data
+  const { data: adminData, error: adminError } = await supabase
+    .from('admins')
+    .select('id, Recharge')
+    .eq('id', adminId)
+    .single();
+
+  if (adminError || !adminData) {
+    console.error('Admin fetch error:', adminError);
+    throw new Error('Admin not found or error fetching admin data');
+  }
+
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('id, balance')
+    .eq('id', userId)
+    .single();
+
+  if (userError || !userData) {
+    console.error('User fetch error:', userError);
+    throw new Error('User not found or error fetching user data');
+  }
+
+  // Check if admin has sufficient balance
+  if (adminData.Recharge < amount) {
+    console.error('Insufficient admin balance');
+    throw new Error('Insufficient admin balance');
+  }
+
+  // Update balances
+  const { error: adminUpdateError } = await supabase
+    .from('admins')
+    .update({ Recharge: adminData.Recharge - amount })
+    .eq('id', adminId);
+
+  if (adminUpdateError) {
+    console.error('Error updating admin balance:', adminUpdateError);
+    throw new Error('Error updating admin balance');
+  }
+
+  const { error: userUpdateError } = await supabase
+    .from('users')
+    .update({ balance: userData.balance + amount })
+    .eq('id', userId);
+
+  if (userUpdateError) {
+    console.error('Error updating user balance:', userUpdateError);
+    throw new Error('Error updating user balance');
+  }
+
+  console.log(`Successfully topped up user ${userId}'s balance by $${amount}`);
+};
+
+export { supabase };

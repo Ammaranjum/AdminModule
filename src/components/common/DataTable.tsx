@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from 'react';
+import { ReactNode, useState } from 'react';
 
 interface Column<T> {
   header: string;
@@ -16,7 +16,7 @@ interface DataTableProps<T> {
   itemsPerPage?: number;
 }
 
-function DataTable<T>({
+function DataTable<T extends Record<string, unknown>>({
   columns,
   data,
   keyField,
@@ -33,7 +33,7 @@ function DataTable<T>({
     if (!searchTerm) return true;
     
     // Check if any field includes the search term
-    return Object.entries(item).some(([_, value]) => {
+    return Object.entries(item as Record<string, unknown>).some(([_, value]) => {
       if (typeof value === 'string') {
         return value.toLowerCase().includes(searchTerm.toLowerCase());
       }
