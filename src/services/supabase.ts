@@ -201,7 +201,7 @@ export const topUpUserBalance = async ({
   id,
   userId,
   amount,
-  remark,
+  remarks,
   adminName,
   adminOldRecharge,
   adminNewRecharge,
@@ -235,7 +235,7 @@ export const topUpUserBalance = async ({
       admin_new_recharge: adminNewRecharge,
       user_id: userId,
       amount: amount,
-      remarks: remark,
+      remarks: remarks,
     });
   if (insertError) throw insertError;
 
@@ -245,7 +245,7 @@ export const topUpUserBalance = async ({
     adminName: admin.name,
     activityType: 'top-up',
     description: `Topped up user ${userId} balance by ${amount}`,
-    metadata: { userId, amount, remark }
+    metadata: { userId, amount, remarks }
   });
 };
 
@@ -254,7 +254,7 @@ export const topUpUserBalanceBackend = async (adminId: string, userId: string, a
   // Fetch admin and user data
   const { data: adminData, error: adminError } = await supabase
     .from('admins')
-    .select('id, Recharge')
+    .select('id, Recharge, name')
     .eq('id', adminId)
     .single();
 
@@ -264,7 +264,7 @@ export const topUpUserBalanceBackend = async (adminId: string, userId: string, a
 
   const { data: userData, error: userError } = await supabase
     .from('users')
-    .select('id, balance')
+    .select('id, balance, name')
     .eq('id', userId)
     .single();
 
@@ -301,7 +301,9 @@ export const topUpUserBalanceBackend = async (adminId: string, userId: string, a
     .from('top_ups')
     .insert({
       admin_id: adminId,
+      admin_name: adminData.name,
       user_id: userId,
+      user_name: userData.name,
       amount: amount,
       adminOldRecharge: adminData.Recharge,
       adminNewRecharge: adminData.Recharge - amount,
@@ -356,10 +358,11 @@ export const getTopUps = async (): Promise<TopUpData[]> => {
     id: row.id,
     createdAt: row.created_at,
     adminName: row.admin_name,
-    adminOldRecharge: row.admin_old_recharge,
-    adminNewRecharge: row.admin_new_recharge,
+    adminOldRecharge: row.adminOldRecharge,
+    adminNewRecharge: row.adminNewRecharge,
     userId: row.user_id,
+    userName: row.user_name,
     amount: row.amount,
-    remark: row.remarks,
+    remarks: row.remarks,
   }));
 };

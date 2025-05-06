@@ -1,5 +1,4 @@
 import { supabase } from '../services/supabase'; // Adjust the path as necessary
-import { Column } from 'react-table'; // Replace with the actual import
 
 export interface User {
   id: string;
@@ -81,12 +80,14 @@ export interface DashboardStats {
 export interface TopUpData {
   userId: string;
   amount: number;
-  remark: string;
+  remarks: string;
   adminName: string;
   adminOldRecharge: number;
   adminNewRecharge: number;
   createdAt: string;
   id: string;
+  userName?: string;
+  userBalance?: number;
   [key: string]: unknown;
 }
 

@@ -3,6 +3,8 @@ import { getTopUps } from '../services/supabase';
 import { TopUpData } from '../types';
 import Card from '../components/common/Card';
 import DataTable from '../components/common/DataTable';
+import { Column } from '../components/common/DataTable';
+
 
 const TopUpLogsPage: React.FC = () => {
   const [topUps, setTopUps] = useState<TopUpData[]>([]);
@@ -30,34 +32,32 @@ const TopUpLogsPage: React.FC = () => {
     fetchTopUps();
   }, []);
 
+  console.log('Top-up in final state:', topUps);
+
   const columns = [
     {
-      header: 'Admin',
-      accessor: (topUp: TopUpData) => topUp.adminName
+      header: 'Index',
+      accessor: (topUp: TopUpData, index: number) => topUps.indexOf(topUp) + 1,
     },
     {
-      header: 'User ID',
-      accessor: (topUp: TopUpData) => topUp.userId
+      header: 'User Name',
+      accessor: (topUp: TopUpData) => topUp.userName
     },
     {
       header: 'Amount',
       accessor: (topUp: TopUpData) => `$${topUp.amount.toFixed(2)}`
     },
     {
+      header: 'User Balance',
+      accessor: (topUp: TopUpData) => `$${topUp.amount.toFixed(2)}`
+    },
+    {
       header: 'Admin Balance',
-      accessor: (t: TopUpData) =>
-        t.adminOldRecharge != null
-          ? (
-            <div>
-              <div>Old: ${t.adminOldRecharge.toFixed(2)}</div>
-              <div>New: ${t.adminNewRecharge!.toFixed(2)}</div>
-            </div>
-          )
-          : ''
+      accessor: (topUp: TopUpData) => `$${topUp.adminNewRecharge}`          
     },
     {
       header: 'Remarks',
-      accessor: (topUp: TopUpData) => topUp.remark
+      accessor: (topUp: TopUpData) => topUp.remarks
     },
     {
       header: 'Date',
@@ -81,7 +81,7 @@ const TopUpLogsPage: React.FC = () => {
 
       <Card title="Top-Up Logs">
         <DataTable<TopUpData>
-          columns={columns}
+          columns={columns as Column<TopUpData>[]}
           data={topUps}
           keyField="id"
           isLoading={loading}

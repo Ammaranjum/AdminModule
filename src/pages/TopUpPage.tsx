@@ -14,7 +14,7 @@ const TopUpPage: React.FC = () => {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [amount, setAmount] = useState<number | "">("");
-  const [remark, setRemark] = useState("");
+  const [remarks, setRemark] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -80,7 +80,7 @@ const TopUpPage: React.FC = () => {
 
     try {
       setIsProcessing(true);
-      await topUpUserBalanceBackend(admin.id, selectedUser.id, Number(amount));
+      await topUpUserBalanceBackend(admin.id, selectedUser.id, Number(amount), remarks);
       toast.success(
         `Successfully topped up ${selectedUser.name}'s balance by $${amount}`
       );
@@ -215,14 +215,14 @@ const TopUpPage: React.FC = () => {
 
             <div>
               <label
-                htmlFor="remark"
+                htmlFor="remarks"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Remark (Optional)
+                Remarks (Optional)
               </label>
               <textarea
-                id="remark"
-                value={remark}
+                id="remarks"
+                value={remarks}
                 onChange={(e) => setRemark(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Add optional remark..."
