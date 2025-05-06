@@ -350,6 +350,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
 export const getTopUps = async (): Promise<TopUpData[]> => {
   const { data, error } = await supabase.from('top_ups').select('*');
+  console.log('Supabase getTopUps raw data:', data, 'error:', error);
   if (error) throw error;
   return data.map((row) => ({
     id: row.id,

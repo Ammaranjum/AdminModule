@@ -1,4 +1,5 @@
 import { supabase } from '../services/supabase'; // Adjust the path as necessary
+import { Column } from 'react-table'; // Replace with the actual import
 
 export interface User {
   id: string;
@@ -86,6 +87,7 @@ export interface TopUpData {
   adminNewRecharge: number;
   createdAt: string;
   id: string;
+  [key: string]: unknown;
 }
 
 export const getCurrentAdmin = async (): Promise<Admin | null> => {

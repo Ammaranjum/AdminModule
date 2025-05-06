@@ -10,13 +10,18 @@ const TopUpLogsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('Current topUps state:', topUps);
+  }, [topUps]);
+
+  useEffect(() => {
     const fetchTopUps = async () => {
       try {
         const data = await getTopUps();
+        console.log('Fetched top-up logs from DB:', data);
         setTopUps(data);
       } catch (err) {
         setError('Failed to fetch top-up logs');
-        console.error(err);
+        console.error('Error fetching top-up logs:', err);
       } finally {
         setLoading(false);
       }
@@ -40,12 +45,15 @@ const TopUpLogsPage: React.FC = () => {
     },
     {
       header: 'Admin Balance',
-      accessor: (topUp: TopUpData) => (
-        <div className="text-sm">
-          <div>Old: ${topUp.adminOldRecharge.toFixed(2)}</div>
-          <div>New: ${topUp.adminNewRecharge.toFixed(2)}</div>
-        </div>
-      )
+      accessor: (t: TopUpData) =>
+        t.adminOldRecharge != null
+          ? (
+            <div>
+              <div>Old: ${t.adminOldRecharge.toFixed(2)}</div>
+              <div>New: ${t.adminNewRecharge!.toFixed(2)}</div>
+            </div>
+          )
+          : ''
     },
     {
       header: 'Remarks',
@@ -72,7 +80,7 @@ const TopUpLogsPage: React.FC = () => {
       </div>
 
       <Card title="Top-Up Logs">
-        <DataTable
+        <DataTable<TopUpData>
           columns={columns}
           data={topUps}
           keyField="id"
