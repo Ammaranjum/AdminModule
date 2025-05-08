@@ -9,11 +9,15 @@ import {
 } from "lucide-react";
 import StatCard from "../common/StatCard";
 import { DashboardStats } from "../../types";
+import { getTotalUsers, getTotalTopUps } from "../../services/supabase";
 
 interface DashboardCardsProps {
   stats: DashboardStats;
   isLoading: boolean;
 }
+
+const countUsers = await getTotalUsers();
+const countTopUps = await getTotalTopUps();
 
 const DashboardCards: React.FC<DashboardCardsProps> = ({
   stats,
@@ -45,7 +49,7 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <StatCard
         title="Total Users"
-        value={stats.totalUsers}
+        value={countUsers}
         icon={<Users size={24} className="text-blue-600" />}
         trend={{ value: 12, isPositive: true }}
       />
@@ -79,10 +83,12 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
 
       <StatCard
         title="Total Top-ups"
-        value={`$${stats.totalTopUps.toFixed(2)}`}
+        value={countTopUps.count}
+        secondaryValue={`$${countTopUps.totalAmount.toFixed(2)}`}
         icon={<ArrowUpCircle size={24} className="text-cyan-600" />}
-        trend={{ value: 15, isPositive: true }}
       />
+
+      
     </div>
   );
 };

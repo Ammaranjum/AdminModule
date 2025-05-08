@@ -46,7 +46,7 @@ export const getCurrentAdmin = async (): Promise<Admin | null> => {
 export const getUsers = async () => {
   const { data, error } = await supabase
     .from("users")
-    .select("id, customer_id, name, email, phone, balance, totalbalance, created_at, updated_at")
+    .select("id, customer_id, name, email, phone, balance, total_balance, created_at, updated_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -61,7 +61,7 @@ export const getUsers = async () => {
     email: user.email,
     phone: user.phone,
     balance: user.balance,
-    totalBalance: user.totalbalance,
+    totalBalance: user.total_balance,
     createdAt: user.created_at,
     updatedAt: user.updated_at,
   }));
@@ -318,15 +318,34 @@ export const topUpUserBalanceBackend = async (adminId: string, userId: string, a
   console.log(`Successfully topped up user ${userId}'s balance by $${amount}`);
 };
 
+export const getTotalTopUps = async (): Promise<{ count: number; totalAmount: number }> => {
+  // Fetch only the amount column and get exact count
+  const { data, count, error } = await supabase
+    .from('top_ups')
+    .select('amount', { count: 'exact' });
+  if (error) throw error;
+  const totalAmount = data?.reduce((sum, row) => sum + (row.amount as number), 0) ?? 0;
+  return { count: count ?? 0, totalAmount };
+};
+  
+export const getTotalUsers = async (): Promise<number> => {
+  const { count, error } = await supabase
+    .from('users')
+    .select('*', { head: true, count: 'exact' });
+  if (error) throw error;
+  return count ?? 0;
+};
+
 // Dashboard stats
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   // In a real application, this would be a single RPC call to the database
   // For demo purposes, we'll simulate it with multiple calls
   
-  const [users, orders, activityLogs] = await Promise.all([
+  const [users, orders, activityLogs, topUps] = await Promise.all([
     getUsers(),
     getOrders(),
-    getActivityLogs()
+    getActivityLogs(),
+    getTopUps()
   ]);
   
   const totalSales = orders.reduce((sum, order) => 
@@ -335,9 +354,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
   const failedOrders = orders.filter(order => order.status === 'failed').length;
   const pendingOrders = orders.filter(order => order.status === 'pending').length;
   
-  const topUpActivities = activityLogs.filter(log => log.activityType === 'top-up');
-  const totalTopUps = topUpActivities.reduce((sum, log) => 
-    sum + (log.metadata.amount || 0), 0);
+  const totalTopUps = topUps.reduce((sum, topUp) => sum + topUp.amount, 0);
   
   return {
     totalUsers: users.length,
