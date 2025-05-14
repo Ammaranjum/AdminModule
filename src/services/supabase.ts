@@ -380,15 +380,37 @@ export const getTopUps = async (): Promise<TopUpData[]> => {
   const { data, error } = await supabase.from('top_ups').select('*');
   console.log('Supabase getTopUps raw data:', data, 'error:', error);
   if (error) throw error;
-  return data.map((row) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    adminName: row.admin_name,
-    adminOldRecharge: row.adminOldRecharge,
-    adminNewRecharge: row.adminNewRecharge,
-    userId: row.user_id,
-    userName: row.user_name,
-    amount: row.amount,
-    remarks: row.remarks,
+
+  // Create an array to hold the top-up data with user balances
+  const topUpsWithBalances = await Promise.all(data.map(async (row) => {
+    // Fetch the user's balance using the userId from the top-up record
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('balance')
+      .eq('id', row.user_id)
+      .single(); // Use single() to get a single record
+
+    if (userError) {
+      console.error('Error fetching user balance:', userError);
+      return {
+        ...row,
+        userBalance: null, // Set userBalance to null if there's an error
+      };
+    }
+
+    return {
+      id: row.id,
+      createdAt: row.created_at,
+      adminName: row.admin_name,
+      adminOldRecharge: row.adminOldRecharge,
+      adminNewRecharge: row.adminNewRecharge,
+      userId: row.user_id,
+      userName: row.user_name,
+      amount: row.amount,
+      remarks: row.remarks,
+      userBalance: userData ? userData.balance : null, // Include the user's balance
+    };
   }));
+
+  return topUpsWithBalances; // Return the modified array
 };

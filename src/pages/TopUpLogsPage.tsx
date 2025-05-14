@@ -49,7 +49,7 @@ const TopUpLogsPage: React.FC = () => {
     },
     {
       header: 'User Balance',
-      accessor: (topUp: TopUpData) => `$${topUp.amount.toFixed(2)}`
+      accessor: (topUp: TopUpData) => `$${topUp.userBalance?.toFixed(2) || '0.00'}`
     },
     {
       header: 'Admin Balance',
