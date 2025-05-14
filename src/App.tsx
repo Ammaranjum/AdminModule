@@ -16,6 +16,7 @@ import TopUpPage from './pages/TopUpPage';
 import GamesPage from './pages/GamesPage';
 import ActivityLogsPage from './pages/ActivityLogsPage';
 import TopUpLogsPage from './pages/TopUpLogsPage';
+import PurchasePage from './pages/PurchasePage';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -53,6 +54,7 @@ const AppRoutes: React.FC = () => {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="purchase" element={<PurchasePage />} />
           <Route path="topup" element={<TopUpPage />} />
           <Route path="topups" element={<TopUpLogsPage />} />
           <Route path="games" element={<GamesPage />} />

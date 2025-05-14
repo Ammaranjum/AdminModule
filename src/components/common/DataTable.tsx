@@ -16,7 +16,7 @@ interface DataTableProps<T> {
   itemsPerPage?: number;
 }
 
-function DataTable<T extends Record<string, unknown>>({
+function DataTable<T extends object>({
   columns,
   data,
   keyField,

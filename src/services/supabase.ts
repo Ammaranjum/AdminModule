@@ -100,19 +100,14 @@ export const searchUsers = async (query: string): Promise<User[]> => {
 };
 
 // Order services
-export const getOrders = async (): Promise<Order[]> => {
+export const getOrders = async (): Promise<any[]> => {
   const { data, error } = await supabase
     .from('orders')
-    .select(`
-      *,
-      user:userId(id, name, email, customerId),
-      game:gameId(id, name),
-      server:serverId(id, name, region)
-    `)
-    .order('createdAt', { ascending: false });
-    
+    // Include customer details for display
+    .select(`*, customer:users(id, name, customer_id)`) 
+    .order('created_at', { ascending: false });
   if (error) throw error;
-  return data as Order[];
+  return data!;
 };
 
 export const getOrderById = async (id: string): Promise<Order> => {

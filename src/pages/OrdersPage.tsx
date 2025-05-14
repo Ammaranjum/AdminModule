@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getOrders, updateOrderStatus } from '../services/supabase';
-import { Order, OrderStatus } from '../types';
-import DataTable from '../components/common/DataTable';
 import Card from '../components/common/Card';
 import { RefreshCw, AlertTriangle, CheckCircle, Clock, Eye } from 'lucide-react';
 import Modal from '../components/common/Modal';
@@ -9,9 +7,10 @@ import Button from '../components/common/Button';
 import { toast } from 'react-hot-toast';
 
 const OrdersPage: React.FC = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -30,7 +29,7 @@ const OrdersPage: React.FC = () => {
     fetchOrders();
   }, []);
 
-  const handleViewOrder = (order: Order) => {
+  const handleViewOrder = (order: any) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
   };
@@ -61,7 +60,7 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: OrderStatus) => {
+  const getStatusBadge = (status: string) => {
     const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
     
     switch (status) {
@@ -98,148 +97,151 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  const columns = [
-    { header: 'Internal ID', accessor: 'internalOrderId' },
-    { header: 'Supplier ID', accessor: 'supplierOrderId' },
-    {
-      header: 'User',
-      accessor: (order: Order) => order.user?.name || 'Unknown'
-    },
-    {
-      header: 'Game/Server',
-      accessor: (order: Order) => `${order.game?.name || 'Unknown'} / ${order.server?.name || 'Unknown'}`
-    },
-    {
-      header: 'Amount',
-      accessor: (order: Order) => (
-        <span className="font-medium">${order.amount.toFixed(2)}</span>
-      )
-    },
-    {
-      header: 'Status',
-      accessor: (order: Order) => getStatusBadge(order.status)
-    },
-    {
-      header: 'Date',
-      accessor: (order: Order) => new Date(order.createdAt).toLocaleDateString()
-    },
-    {
-      header: 'Actions',
-      accessor: (order: Order) => (
-        <Button
-          variant="info"
-          size="sm"
-          icon={<Eye size={16} />}
-          onClick={() => handleViewOrder(order)}
-        >
-          View
-        </Button>
-      )
-    }
-  ];
+  // Filtered orders based on search input
+  const filteredOrders = orders.filter(order => {
+    if (!searchQuery.trim()) return true;
+    const term = searchQuery.toLowerCase();
+    return (
+      order.order_id?.toLowerCase().includes(term) ||
+      order.customer?.name?.toLowerCase().includes(term) ||
+      order.game_name?.toLowerCase().includes(term) ||
+      order.status?.toLowerCase().includes(term)
+    );
+  });
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
         <p className="text-sm text-gray-500">
-          Total orders: {orders.length}
+          Total orders: {filteredOrders.length}
         </p>
       </div>
 
       <Card title="All Orders">
-        <DataTable
-          columns={columns}
-          data={orders}
-          keyField="id"
-          isLoading={isLoading}
-          emptyMessage="No orders found"
-        />
+        {/* Search bar */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search orders..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div className="divide-y divide-gray-200">
+          {filteredOrders.length > 0 ? (
+            filteredOrders.map((order: any, idx: number) => (
+              <div key={order.order_id} className="py-4 flex flex-col md:flex-row md:justify-between md:items-center">
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm text-gray-400">#{idx + 1}</p>
+                  <p className="text-sm font-medium">Order {order.order_id}</p>
+                  <p className="text-sm text-gray-500">Supplier ID: {order.supplier_order_id || '-'}</p>
+                  <p className="text-sm text-gray-500">Customer: {order.customer?.name || '-'}</p>
+                  <p className="text-sm text-gray-500">Game: {order.game_name}</p>
+                  {order.game_server_id && <p className="text-sm text-gray-500">Server: {order.game_server_id}</p>}
+                </div>
+                <div className="mt-2 md:mt-0 flex items-center space-x-4">
+                  <span className="text-sm font-medium">${order.price?.toFixed(2) || '0.00'}</span>
+                  {getStatusBadge(order.status)}
+                  <Button
+                    variant="info"
+                    size="sm"
+                    icon={<Eye size={16} />}
+                    onClick={() => handleViewOrder(order)}
+                  >
+                    View
+                  </Button>
+                  {order.status !== 'refunded' && (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      icon={<RefreshCw size={18} />}
+                      onClick={() => handleRefund(order.order_id)}
+                      isLoading={isProcessing}
+                    >
+                      Refund
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500 p-4">No orders found.</p>
+          )}
+        </div>
       </Card>
 
       {selectedOrder && (
         <Modal
           isOpen={isModalOpen}
           onClose={closeModal}
-          title={`Order Details: ${selectedOrder.internalOrderId}`}
+          title={`Order Details: ${selectedOrder.order_id}`}
           size="lg"
         >
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Order Information</h3>
-                <div className="mt-2 bg-gray-50 p-4 rounded-md">
-                  <dl className="divide-y divide-gray-200">
-                    <div className="py-2 flex justify-between">
-                      <dt className="text-sm font-medium text-gray-500">Internal Order ID</dt>
-                      <dd className="text-sm font-medium text-gray-900">{selectedOrder.internalOrderId}</dd>
-                    </div>
-                    <div className="py-2 flex justify-between">
-                      <dt className="text-sm font-medium text-gray-500">Supplier Order ID</dt>
-                      <dd className="text-sm font-medium text-gray-900">{selectedOrder.supplierOrderId}</dd>
-                    </div>
-                    <div className="py-2 flex justify-between">
-                      <dt className="text-sm font-medium text-gray-500">Amount</dt>
-                      <dd className="text-sm font-medium text-green-600">${selectedOrder.amount.toFixed(2)}</dd>
-                    </div>
-                    <div className="py-2 flex justify-between">
-                      <dt className="text-sm font-medium text-gray-500">Status</dt>
-                      <dd>{getStatusBadge(selectedOrder.status)}</dd>
-                    </div>
-                    <div className="py-2 flex justify-between">
-                      <dt className="text-sm font-medium text-gray-500">Created</dt>
-                      <dd className="text-sm font-medium text-gray-900">
-                        {new Date(selectedOrder.createdAt).toLocaleString()}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-              </div>
+            <div className="bg-white p-6 rounded-md shadow">
+              <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                <dt className="font-medium text-gray-600">Order ID</dt>
+                <dd className="text-gray-900">{selectedOrder.order_id}</dd>
 
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">User & Game Information</h3>
-                <div className="mt-2 bg-gray-50 p-4 rounded-md">
-                  <dl className="divide-y divide-gray-200">
-                    <div className="py-2 flex justify-between">
-                      <dt className="text-sm font-medium text-gray-500">User</dt>
-                      <dd className="text-sm font-medium text-gray-900">{selectedOrder.user?.name || 'Unknown'}</dd>
-                    </div>
-                    <div className="py-2 flex justify-between">
-                      <dt className="text-sm font-medium text-gray-500">Customer ID</dt>
-                      <dd className="text-sm font-medium text-gray-900">{selectedOrder.user?.customerId || 'Unknown'}</dd>
-                    </div>
-                    <div className="py-2 flex justify-between">
-                      <dt className="text-sm font-medium text-gray-500">Game</dt>
-                      <dd className="text-sm font-medium text-gray-900">{selectedOrder.game?.name || 'Unknown'}</dd>
-                    </div>
-                    <div className="py-2 flex justify-between">
-                      <dt className="text-sm font-medium text-gray-500">Server</dt>
-                      <dd className="text-sm font-medium text-gray-900">{selectedOrder.server?.name || 'Unknown'}</dd>
-                    </div>
-                    <div className="py-2 flex justify-between">
-                      <dt className="text-sm font-medium text-gray-500">Region</dt>
-                      <dd className="text-sm font-medium text-gray-900">{selectedOrder.server?.region || 'Unknown'}</dd>
-                    </div>
-                  </dl>
-                </div>
-              </div>
+                <dt className="font-medium text-gray-600">Game User ID</dt>
+                <dd className="text-gray-900">{selectedOrder.game_user_id}</dd>
+
+                <dt className="font-medium text-gray-600">Game Server ID</dt>
+                <dd className="text-gray-900">{selectedOrder.game_server_id || '-'}</dd>
+
+                <dt className="font-medium text-gray-600">Game Name</dt>
+                <dd className="text-gray-900">{selectedOrder.game_name}</dd>
+
+                <dt className="font-medium text-gray-600">User Name</dt>
+                <dd className="text-gray-900">{selectedOrder.user?.name || '-'}</dd>
+
+                <dt className="font-medium text-gray-600">Payment Method</dt>
+                <dd className="text-gray-900">{selectedOrder.payment_method}</dd>
+
+                <dt className="font-medium text-gray-600">Order Status</dt>
+                <dd className="text-gray-900">{selectedOrder.status}</dd>
+
+                <dt className="font-medium text-gray-600">Topped Up</dt>
+                <dd className="text-gray-900">{selectedOrder.amount_topped_up}</dd>
+
+                <dt className="font-medium text-gray-600">Price</dt>
+                <dd className="text-gray-900">${selectedOrder.price?.toFixed(2)}</dd>
+
+                <dt className="font-medium text-gray-600">Before Balance</dt>
+                <dd className="text-gray-900">${selectedOrder.before_balance?.toFixed(2)}</dd>
+
+                <dt className="font-medium text-gray-600">After Balance</dt>
+                <dd className="text-gray-900">${selectedOrder.after_balance?.toFixed(2)}</dd>
+
+                <dt className="font-medium text-gray-600">Created At</dt>
+                <dd className="text-gray-900">{new Date(selectedOrder.created_at).toLocaleString()}</dd>
+
+                <dt className="font-medium text-gray-600">Updated At</dt>
+                <dd className="text-gray-900">{new Date(selectedOrder.updated_at).toLocaleString()}</dd>
+
+                <dt className="font-medium text-gray-600">Transaction Number</dt>
+                <dd className="text-gray-900">{selectedOrder.transaction_number || '-'}</dd>
+
+                <dt className="font-medium text-gray-600">Invalid Code</dt>
+                <dd className="text-gray-900">{selectedOrder.invalid_code || '-'}</dd>
+
+                <dt className="font-medium text-gray-600">Region</dt>
+                <dd className="text-gray-900">{/* TODO: fetch server region */ '-'}</dd>
+
+                <dt className="font-medium text-gray-600">Supplier Response</dt>
+                <dd>
+                  <pre className="whitespace-pre-wrap text-xs bg-gray-100 p-2 rounded">
+                    {JSON.stringify(selectedOrder.supplier_response, null, 2)}
+                  </pre>
+                </dd>
+              </dl>
             </div>
 
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Actions</h3>
-              <div className="mt-2 flex space-x-3">
-                {selectedOrder.status !== 'refunded' && (
-                  <Button
-                    variant="danger"
-                    icon={<RefreshCw size={18} />}
-                    onClick={() => handleRefund(selectedOrder.id)}
-                    isLoading={isProcessing}
-                  >
-                    Refund Order
-                  </Button>
-                )}
-                <Button variant="secondary" onClick={closeModal}>Close</Button>
-              </div>
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={closeModal}>Close</Button>
             </div>
           </div>
         </Modal>

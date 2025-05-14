@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, PackageSearch, Server as ServerStack, Activity, LogOut, Menu, X, DollarSign, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, PackageSearch, ShoppingCart, Server as ServerStack, Activity, LogOut, Menu, X, DollarSign, ClipboardList } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import { getAdminBalance } from '../../services/gameService';
@@ -35,6 +35,7 @@ const AdminLayout: React.FC = () => {
     { to: '/admin/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { to: '/admin/users', icon: <Users size={20} />, label: 'Users' },
     { to: '/admin/orders', icon: <PackageSearch size={20} />, label: 'Orders' },
+    { to: '/admin/purchase', icon: <ShoppingCart size={20} />, label: 'Purchase' },
     { to: '/admin/topup', icon: <DollarSign size={20} />, label: 'Top Up' },
     { to: '/admin/topups', icon: <ClipboardList size={20} />, label: 'Top-Up Logs' },
     { to: '/admin/games', icon: <ServerStack size={20} />, label: 'Games & Servers' },
