@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from './supabase';
 
 const API_TOKEN = 'PTAfoq58Of';
 const BASE_URL = '/api';
@@ -38,6 +39,39 @@ export interface ServerListResponse {
   data: {
     data: ServerList;
   };
+}
+
+export interface CheckBalanceResponse {
+  status: boolean;
+  message: string;
+  data: {
+    balance: number;
+  };
+}
+
+export const getAdminBalance = async (adminId: string): Promise<number> => {
+  try {
+    const response = await axios.post<CheckBalanceResponse>(`${BASE_URL}/check_balance`, {
+      token: API_TOKEN
+    });
+
+    if (!response.data.status) {
+      throw new Error(response.data.message);
+    }
+
+    const balance = response.data.data.balance;
+    // automatically update TotalBalance in Supabase
+    const { error: updateError } = await supabase
+      .from('admins')
+      .update({ TotalBalance: balance })
+      .eq('id', adminId);
+    if (updateError) throw updateError;
+    return balance;
+  } catch (error) {
+    console.error('Error fetching admin balance:', error);
+    throw error;
+  }
+
 }
 
 export const getGameLists = async (): Promise<ExternalGame[]> => {

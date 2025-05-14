@@ -4,15 +4,18 @@ import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, Users, PackageSearch, Server as ServerStack, Activity, LogOut, Menu, X, DollarSign, ClipboardList } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+import { getAdminBalance } from '../../services/gameService';
+
 const AdminLayout: React.FC = () => {
   const { admin, logout } = useAuth();
   const [menuOpen, setMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (admin) {
+      const adminBalance = getAdminBalance(admin.id); 
       console.log('Admin object:', admin);
       console.log('Admin Recharge:', admin.Recharge);
-      console.log('Admin totalBalance:', admin.TotalBalance);
+      console.log('Admin totalBalance:', adminBalance);
     }
   }, [admin]);
 

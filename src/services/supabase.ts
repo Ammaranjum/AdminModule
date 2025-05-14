@@ -46,7 +46,7 @@ export const getCurrentAdmin = async (): Promise<Admin | null> => {
 export const getUsers = async () => {
   const { data, error } = await supabase
     .from("users")
-    .select("id, customer_id, name, email, phone, balance, total_balance, created_at, updated_at")
+    .select("id, customer_id, name, email, phone, balance, totalbalance, created_at, updated_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -61,7 +61,7 @@ export const getUsers = async () => {
     email: user.email,
     phone: user.phone,
     balance: user.balance,
-    totalBalance: user.total_balance,
+    totalBalance: user.totalbalance,
     createdAt: user.created_at,
     updatedAt: user.updated_at,
   }));
@@ -250,7 +250,7 @@ export const topUpUserBalance = async ({
 };
 
 // Function to perform top-up operation
-export const topUpUserBalanceBackend = async (adminId: string, userId: string, amount: number): Promise<void> => {
+export const topUpUserBalanceBackend = async (adminId: string, userId: string, amount: number, remarks: string): Promise<void> => {
   // Fetch admin and user data
   const { data: adminData, error: adminError } = await supabase
     .from('admins')
@@ -272,12 +272,19 @@ export const topUpUserBalanceBackend = async (adminId: string, userId: string, a
     throw new Error('User not found or error fetching user data');
   }
 
-  // Check if admin has sufficient balance
-  if (adminData.Recharge < amount) {
-    throw new Error('Insufficient admin balance');
-  }
 
-  // Update balances
+  // //update admin balance.
+  // const {error: balanceUpdateError} = await supabase
+  //   .from('admins') 
+  //   .update({TotalBalance: adminData.TotalBalance})
+  //   .eq('id', adminId);
+
+  // // Check if admin has sufficient Recharge
+  // if (adminData.Recharge < amount) {
+  //   throw new Error('Insufficient admin Recharge');
+  // }
+
+  // Update Recharge
   const { error: adminUpdateError } = await supabase
     .from('admins')
     .update({ Recharge: adminData.Recharge - amount })
@@ -286,6 +293,8 @@ export const topUpUserBalanceBackend = async (adminId: string, userId: string, a
   if (adminUpdateError) {
     throw new Error('Error updating admin balance');
   }
+
+
 
   const { error: userUpdateError } = await supabase
     .from('users')
@@ -307,7 +316,7 @@ export const topUpUserBalanceBackend = async (adminId: string, userId: string, a
       amount: amount,
       adminOldRecharge: adminData.Recharge,
       adminNewRecharge: adminData.Recharge - amount,
-      remarks: '' // Add any remarks if needed
+      remarks: remarks // Add any remarks if needed
     });
 
   if (insertError) {
