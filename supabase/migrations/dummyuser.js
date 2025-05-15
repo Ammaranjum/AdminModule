@@ -3,8 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 // Initialize Supabase client with your project URL and service role key
 // I used this to file to create a dummy user for testing purposes 
 const supabase = createClient(
-  "https://djcwtdzvvtksmwnicgwh.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqY3d0ZHp2dnRrc213bmljZ3doIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjAxMjAwOCwiZXhwIjoyMDYxNTg4MDA4fQ.71r-JzHmVJsWttVDRWh9JyM7r9s6CZvxnYK_t14hzmU"
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 async function ensureAdminUser() {

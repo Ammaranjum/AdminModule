@@ -4,9 +4,12 @@ import {
   DashboardStats, Admin, TopUpData, OrderStatus 
 } from '../types';
 
-// In a real application, these would be environment variables
-const supabaseUrl = 'https://djcwtdzvvtksmwnicgwh.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqY3d0ZHp2dnRrc213bmljZ3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMTIwMDgsImV4cCI6MjA2MTU4ODAwOH0.6kPKIvbD8RC7Ek-8R7GvR7QP3Y5V97ikrw3lZji2U2A';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase environment variables');
+} 
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
