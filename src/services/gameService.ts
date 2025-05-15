@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { supabase } from './supabase';
 
-const API_TOKEN = process.env.API_TOKEN;
+const API_TOKEN = import.meta.env.VITE_API_TOKEN;
 const BASE_URL = '/api';
 
 export interface ExternalGame {
